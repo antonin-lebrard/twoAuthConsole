@@ -1,0 +1,12 @@
+name: 'optconsole'
+version: 0.0.1
+description: An absolute bare-bones web app.
+#author: Antonin LEBRARD <email@example.com>
+#homepage: https://www.example.com
+
+environment:
+  sdk: '>=1.0.0 <2.0.0'
+
+dependencies:
+  otp: '0.1.0'
+  cipher: '0.7.1'
