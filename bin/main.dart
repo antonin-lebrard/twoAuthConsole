@@ -66,9 +66,12 @@ void addKey(List<String> args){
   List<String> toEncrypt = new List();
   String temp = label + "";
   while(temp.length > 0){
-    if (temp.length < 16) for (int i = temp.length; i < 16; i++) temp += "-";
+    if (temp.length < 16)
+      for (int i = temp.length; i < 16; i++)
+        temp += "-";
     toEncrypt.add(temp.substring(0, 16));
-    if (temp.length != 0) temp = temp.substring(16, temp.length);
+    if (temp.length != 0)
+      temp = temp.substring(16, temp.length);
   }
 
   List<String> toWrite = new List();
@@ -89,9 +92,12 @@ void addKey(List<String> args){
   toEncrypt = new List();
   temp = generatingKey + "";
   while(temp.length > 0){
-    if (temp.length < 16) for (int i = temp.length; i < 16; i++) temp += "-";
+    if (temp.length < 16)
+      for (int i = temp.length; i < 16; i++)
+        temp += "-";
     toEncrypt.add(temp.substring(0, 16));
-    if (temp.length != 0) temp = temp.substring(16, temp.length);
+    if (temp.length != 0)
+      temp = temp.substring(16, temp.length);
   }
 
   toWrite = new List();
@@ -106,9 +112,11 @@ void addKey(List<String> args){
 
   File f;
   int rand;
+
   do {
     rand = new Random().nextInt(200000);
   } while (new File("keys/$rand.key").existsSync());
+
   f = new File("keys/$rand.key");
   f.createSync(recursive: true);
   f.writeAsStringSync(toWrite.join(" ") + "  " + label);
@@ -141,59 +149,66 @@ void displayPins(){
   d.listSync(recursive: false, followLinks: false).forEach((FileSystemEntity f){
     if (f.path.endsWith(".key")){
       filenames.add(f.uri.pathSegments.last);
-      File trueF = f;
-      String fileContent = trueF.readAsStringSync();
+      try {
+        File trueF = f;
+        String fileContent = trueF.readAsStringSync();
 
-      String enc_key = fileContent.split("  ")[0];
-      String enc_label = fileContent.split("  ")[1];
+        String enc_key = fileContent.split("  ")[0];
+        String enc_label = fileContent.split("  ")[1];
 
-      List<Uint8List> toDecrypt = new List();
-      enc_label.split(" ").forEach((String s){ toDecrypt.add(new Uint8List.fromList(s.codeUnits)); });
+        List<Uint8List> toDecrypt = new List();
+        enc_label.split(" ").forEach((String s) {
+          toDecrypt.add(new Uint8List.fromList(s.codeUnits));
+        });
 
-      var params = new KeyParameter(key);
-      var ivparams = new ParametersWithIV(params, new Uint8List(16));
+        var params = new KeyParameter(key);
+        var ivparams = new ParametersWithIV(params, new Uint8List(16));
 
-      cipher.reset();
-      cipher.init(false, ivparams);
-
-      List<String> decrypted = new List();
-      for (int i = 0; i < toDecrypt.length; i++){
-        Uint8List decryptedBits = cipher.process(toDecrypt[i]);
-        decrypted.add(new String.fromCharCodes(decryptedBits));
-        params = new KeyParameter(decryptedBits);
-        ivparams = new ParametersWithIV(params, new Uint8List(16));
         cipher.reset();
         cipher.init(false, ivparams);
-      }
 
-      labels.add(decrypted.join().replaceAll("-", "").replaceAll("~", "-"));
+        List<String> decrypted = new List();
+        for (int i = 0; i < toDecrypt.length; i++) {
+          Uint8List decryptedBits = cipher.process(toDecrypt[i]);
+          decrypted.add(new String.fromCharCodes(decryptedBits));
+          params = new KeyParameter(decryptedBits);
+          ivparams = new ParametersWithIV(params, new Uint8List(16));
+          cipher.reset();
+          cipher.init(false, ivparams);
+        }
 
-      toDecrypt = new List();
-      enc_key.split(" ").forEach((String s){ toDecrypt.add(new Uint8List.fromList(s.codeUnits)); });
+        labels.add(decrypted.join().replaceAll("-", "").replaceAll("~", "-"));
 
-      cipher.reset();
-      cipher.init(false, ivparams);
+        toDecrypt = new List();
+        enc_key.split(" ").forEach((String s) {
+          toDecrypt.add(new Uint8List.fromList(s.codeUnits));
+        });
 
-      decrypted = new List();
-      for (int i = 0; i < toDecrypt.length; i++){
-        Uint8List decryptedBits = cipher.process(toDecrypt[i]);
-        decrypted.add(new String.fromCharCodes(decryptedBits));
-        params = new KeyParameter(decryptedBits);
-        ivparams = new ParametersWithIV(params, new Uint8List(16));
         cipher.reset();
         cipher.init(false, ivparams);
-      }
 
-      generatingKeys.add(decrypted.join().replaceAll("-", ""));
+        decrypted = new List();
+        for (int i = 0; i < toDecrypt.length; i++) {
+          Uint8List decryptedBits = cipher.process(toDecrypt[i]);
+          decrypted.add(new String.fromCharCodes(decryptedBits));
+          params = new KeyParameter(decryptedBits);
+          ivparams = new ParametersWithIV(params, new Uint8List(16));
+          cipher.reset();
+          cipher.init(false, ivparams);
+        }
+
+        generatingKeys.add(decrypted.join().replaceAll("-", ""));
+
+        int now = new DateTime.now().millisecondsSinceEpoch;
+
+        String pin = OTP.generateTOTPCode(generatingKeys.last, now).toString();
+        String label = labels.last;
+        String filename = filenames.last;
+        print("$pin $label from $filename");
+      } catch (e){
+        print("Problem with file: ${filenames.last}");
+      }
     }
   });
 
-  int now = new DateTime.now().millisecondsSinceEpoch;
-
-  for (int i = 0; i < generatingKeys.length; i++){
-    String pin = OTP.generateTOTPCode(generatingKeys[i], now).toString();
-    String label = labels[i];
-    String filename = filenames[i];
-    print("$pin $label from $filename");
-  }
 }
